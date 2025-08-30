@@ -70,5 +70,55 @@ if __name__ == "__main__":
     else:
         print("No frame captured. Exiting.")
 
+___________________________
+_________________________
+
+# Example for Jetson Orin Nano + Ubuntu 22.04
+sudo apt-get update
+sudo apt-get install python3-pip libopenblas-base libopenmpi-dev
+pip3 install --upgrade pip
+
+# Install PyTorch & torchvision (Jetson-optimized)
+# Use the wheel from NVIDIA site:
+# https://developer.nvidia.com/embedded/jetson-reinforcement-learning
+# Example:
+pip3 install torch-2.2.0+nv22.12-cp38-cp38-linux_aarch64.whl
+pip3 install torchvision-0.17.1+nv22.12-cp38-cp38-linux_aarch64.whl
+
+# 2
+pip3 install opencv-python-headless
+
+
+# 3 
+pip3 install ultralytics
+
+# 4 
+# This will download yolov8n.pt (Nano, small and fast)
+from ultralytics import YOLO
+
+model = YOLO('yolov8n.pt')
+
+#from ultralytics import YOLO
+import cv2
+
+# Load YOLOv8 Nano
+model = YOLO('yolov8n.pt')
+
+# Open camera
+cap = cv2.VideoCapture(0)
+ret, frame = cap.read()
+cap.release()
+
+if ret:
+    results = model(frame)
+    results.print()  # prints detected objects
+else:
+    print("Failed to capture frame")
+
+# RUN TEST 
+python3 yolo_test.py
+
+
+
 
 
