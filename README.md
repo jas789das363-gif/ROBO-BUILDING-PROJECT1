@@ -1,9 +1,18 @@
+# Install ultralytics and dependencies
+pip install ultralytics opencv-python-headless torch torchvision --extra-index-url https://download.pytorch.org/whl/torch_stable.html
+
+
+_______
+
 import cv2
 import os
 import subprocess
+from ultralytics import YOLO
+
+# Load YOLOv8 Nano model (pretrained COCO)
+model = YOLO('yolov8n.pt')  # small, fast, lightweight
 
 def capture_frame(camera_index=0, width=640, height=480):
-    """Capture one frame from the camera and resize it."""
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
         print("Camera not found!")
@@ -11,48 +20,55 @@ def capture_frame(camera_index=0, width=640, height=480):
 
     ret, frame = cap.read()
     cap.release()
-
     if ret:
-        print(f"Frame captured! Original size: {frame.shape}")
         frame_small = cv2.resize(frame, (width, height))
-        print(f"Resized frame to: {frame_small.shape}")
         return frame_small
     else:
         print("Failed to grab frame.")
         return None
 
-def reasoning_step(prompt, model="llama3.2:3b"):
-    """Send prompt to local Ollama LLaMA model and return response."""
+def detect_objects(frame):
+    """Detect objects in frame using YOLOv8 Nano"""
+    results = model(frame)  # returns detection results
+    detected = []
+    for r in results:
+        for obj in r.boxes.cls:  # class indices
+            class_name = model.names[int(obj)]
+            detected.append(class_name)
+    return detected
+
+def reasoning_step(object_list, model="llama3.2:3b"):
+    """Send detected objects as prompt to LLaMA"""
+    if not object_list:
+        prompt = "I see nothing."
+    else:
+        prompt = f"I see the following objects: {', '.join(object_list)}. Describe them in one short sentence."
+
     try:
-        print("Sending prompt to LLM...")
         result = subprocess.run(
             ["ollama", "run", model],
             input=prompt.encode(),
             capture_output=True,
             check=True
         )
-        response = result.stdout.decode().strip()
-        print("LLM Response received.")
-        return response
-    except subprocess.CalledProcessError as e:
-        return f"Error querying LLM: {e}"
+        return result.stdout.decode().strip()
     except Exception as e:
-        return f"Unexpected error: {e}"
+        return f"Error querying LLM: {e}"
 
 def speak(text):
-    """Use eSpeak NG for lightweight TTS."""
-    print("Speaking now...")
     os.system(f'espeak-ng "{text}"')
-    print("Done speaking.")
 
+# ===== Main Loop =====
 if __name__ == "__main__":
     frame = capture_frame()
     if frame is not None:
-        prompt = "You are a robot looking through your camera. Say one short sentence about what you see."
-        response = reasoning_step(prompt, model="llama3.2:3b")
+        objects = detect_objects(frame)
+        print("Detected objects:", objects)
+        response = reasoning_step(objects)
         print("LLM Response:", response)
         speak(response)
     else:
         print("No frame captured. Exiting.")
+
 
 
