@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
 ___________
 ____________
-sudo docker run -it --ipc=host --runtime=nvidia ultralytics/ultralytics:latest-jetson-jetpack6
-cd /workspace  # or wherever your script is
+sudo docker run -it --ipc=host --runtime=nvidia -v ~/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
+cd /workspace
 python3 robot_pipeline.py
 
