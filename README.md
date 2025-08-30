@@ -8,6 +8,7 @@ nano robot_pipeline.py
 
 import cv2
 import os
+import subprocess
 
 def capture_frame():
     cap = cv2.VideoCapture(0)  # 0 = default camera
@@ -23,10 +24,19 @@ def capture_frame():
     else:
         print("Failed to grab frame.")
         return None
-        
-def reasoning_step(frame):
-    # Placeholder for your local LLM call later
-    return "I see something in front of me."
+
+def reasoning_step(prompt, model="llama3.2:3b"):
+    """Send prompt to local Ollama LLaMA model and return response."""
+    try:
+        result = subprocess.run(
+            ["ollama", "run", model],
+            input=prompt.encode(),
+            capture_output=True,
+            check=True
+        )
+        return result.stdout.decode().strip()
+    except Exception as e:
+        return f"Error querying LLM: {e}"
 
 def speak(text):
     os.system(f'espeak-ng "{text}"')
@@ -34,9 +44,12 @@ def speak(text):
 if __name__ == "__main__":
     frame = capture_frame()
     if frame is not None:
-        response = reasoning_step(frame)
+        # For now, we’re not analyzing the image — just sending a text prompt
+        prompt = "You are a robot looking through your camera. Say one short sentence about what you might see."
+        response = reasoning_step(prompt, model="llama3.2:3b")
         print("LLM Response:", response)
         speak(response)
+
 
 
 # Then:
