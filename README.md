@@ -1,16 +1,16 @@
-# ROBO-BUILDING-PROJECT1
+# 1) Update + install dependencies (only need to do this once)
 sudo apt-get update
-sudo apt-get install espeak-ng python3-opencv
+sudo apt-get install -y espeak-ng python3-opencv
+
+# 2) Create a new Python file
+nano robot_pipeline.py
 
 
-# 2
 import cv2
 import os
 
 def capture_frame():
-    # Open camera (0 is default, adjust if needed)
-    cap = cv2.VideoCapture(0)
-
+    cap = cv2.VideoCapture(0)  # 0 = default camera
     if not cap.isOpened():
         print("Camera not found!")
         return None
@@ -23,17 +23,14 @@ def capture_frame():
     else:
         print("Failed to grab frame.")
         return None
-
+        
 def reasoning_step(frame):
-    # Placeholder for your LLM call
-    # Here you can replace with actual AI reasoning
+    # Placeholder for your local LLM call later
     return "I see something in front of me."
 
 def speak(text):
-    # Lightweight TTS
     os.system(f'espeak-ng "{text}"')
 
-# === Main loop ===
 if __name__ == "__main__":
     frame = capture_frame()
     if frame is not None:
@@ -41,5 +38,13 @@ if __name__ == "__main__":
         print("LLM Response:", response)
         speak(response)
 
+
+# Then:
+# Press CTRL+O → Enter (save)
+# Press CTRL+X (exit)
+
+
+# 3) Run your program
+python3 robot_pipeline.py
 
 
