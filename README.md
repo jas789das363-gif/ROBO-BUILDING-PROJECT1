@@ -83,5 +83,8 @@ ___________
 ____________
 sudo docker run -it --ipc=host --runtime=nvidia -v ~/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
 cd /workspace
+ls
+
+
 python3 robot_pipeline.py
 
