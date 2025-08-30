@@ -82,4 +82,8 @@ if __name__ == "__main__":
 ___________
 ____________
 realpath ~/robot_project/robot_pipeline.py
+sudo docker run -it --ipc=host --runtime=nvidia -v /home/helpy1/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
+
+cd /workspace
+ls
 
