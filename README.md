@@ -81,9 +81,29 @@ if __name__ == "__main__":
 
 ___________
 ____________
-realpath ~/robot_project/robot_pipeline.py
-sudo docker run -it --ipc=host --runtime=nvidia -v /home/helpy1/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
+yolo_test.py
+from ultralytics import YOLO
 
+# Load YOLOv8 Nano model
+model = YOLO("yolov8n.pt")  # make sure yolov8n.pt is in the current folder
+
+# Run inference on a sample image from the web
+results = model("https://ultralytics.com/images/bus.jpg")
+
+# Print detected class names and confidences
+for r in results:
+    print("Detected objects:")
+    for cls, conf in zip(r.boxes.cls, r.boxes.conf):
+        class_name = model.names[int(cls)]
+        print(f"  {class_name}: {conf:.2f}")
+
+# Display image with bounding boxes (optional)
+results.show()
+
+
+
+
+sudo docker run -it --ipc=host --runtime=nvidia -v ~/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
 cd /workspace
-ls
 
+python3 yolo_test.py
