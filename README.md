@@ -1,17 +1,19 @@
-# Install ultralytics and dependencies
-pip install ultralytics opencv-python-headless torch torchvision --extra-index-url https://download.pytorch.org/whl/torch_stable.html
-
-
-_______
-
 import cv2
 import os
 import subprocess
 from ultralytics import YOLO
 
-# Load YOLOv8 Nano model (pretrained COCO)
-model = YOLO('yolov8n.pt')  # small, fast, lightweight
+# ===== Load YOLOv8 Nano TensorRT Model =====
+# Make sure yolov8n.engine exists in the container folder
+if not os.path.exists("yolov8n.engine"):
+    # If engine doesn't exist, create it from PyTorch model
+    print("Converting PyTorch model to TensorRT engine...")
+    model = YOLO("yolov8n.pt")  # PyTorch model
+    model.export(format="engine")  # creates 'yolov8n.engine'
 
+trt_model = YOLO("yolov8n.engine")  # Load TensorRT engine
+
+# ===== Camera Capture Function =====
 def capture_frame(camera_index=0, width=640, height=480):
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
@@ -20,23 +22,26 @@ def capture_frame(camera_index=0, width=640, height=480):
 
     ret, frame = cap.read()
     cap.release()
+
     if ret:
         frame_small = cv2.resize(frame, (width, height))
         return frame_small
     else:
-        print("Failed to grab frame.")
+        print("Failed to capture frame.")
         return None
 
+# ===== Object Detection =====
 def detect_objects(frame):
-    """Detect objects in frame using YOLOv8 Nano"""
-    results = model(frame)  # returns detection results
+    """Detect objects in frame using YOLOv8 TensorRT model"""
+    results = trt_model(frame)
     detected = []
     for r in results:
-        for obj in r.boxes.cls:  # class indices
-            class_name = model.names[int(obj)]
+        for obj in r.boxes.cls:
+            class_name = trt_model.names[int(obj)]
             detected.append(class_name)
     return detected
 
+# ===== LLaMA Reasoning =====
 def reasoning_step(object_list, model="llama3.2:3b"):
     """Send detected objects as prompt to LLaMA"""
     if not object_list:
@@ -55,10 +60,11 @@ def reasoning_step(object_list, model="llama3.2:3b"):
     except Exception as e:
         return f"Error querying LLM: {e}"
 
+# ===== Lightweight TTS =====
 def speak(text):
     os.system(f'espeak-ng "{text}"')
 
-# ===== Main Loop =====
+# ===== Main Program =====
 if __name__ == "__main__":
     frame = capture_frame()
     if frame is not None:
@@ -69,56 +75,3 @@ if __name__ == "__main__":
         speak(response)
     else:
         print("No frame captured. Exiting.")
-
-___________________________
-_________________________
-
-# Example for Jetson Orin Nano + Ubuntu 22.04
-sudo apt-get update
-sudo apt-get install python3-pip libopenblas-base libopenmpi-dev
-pip3 install --upgrade pip
-
-# Install PyTorch & torchvision (Jetson-optimized)
-# Use the wheel from NVIDIA site:
-# https://developer.nvidia.com/embedded/jetson-reinforcement-learning
-# Example:
-pip3 install torch-2.2.0+nv22.12-cp38-cp38-linux_aarch64.whl
-pip3 install torchvision-0.17.1+nv22.12-cp38-cp38-linux_aarch64.whl
-
-# 2
-pip3 install opencv-python-headless
-
-
-# 3 
-pip3 install ultralytics
-
-# 4 
-# This will download yolov8n.pt (Nano, small and fast)
-from ultralytics import YOLO
-
-model = YOLO('yolov8n.pt')
-
-#from ultralytics import YOLO
-import cv2
-
-# Load YOLOv8 Nano
-model = YOLO('yolov8n.pt')
-
-# Open camera
-cap = cv2.VideoCapture(0)
-ret, frame = cap.read()
-cap.release()
-
-if ret:
-    results = model(frame)
-    results.print()  # prints detected objects
-else:
-    print("Failed to capture frame")
-
-# RUN TEST 
-python3 yolo_test.py
-
-
-
-
-
