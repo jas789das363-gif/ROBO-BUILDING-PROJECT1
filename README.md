@@ -75,3 +75,13 @@ if __name__ == "__main__":
         speak(response)
     else:
         print("No frame captured. Exiting.")
+
+
+
+
+___________
+____________
+sudo docker run -it --ipc=host --runtime=nvidia ultralytics/ultralytics:latest-jetson-jetpack6
+cd /workspace  # or wherever your script is
+python3 robot_pipeline.py
+
