@@ -123,15 +123,18 @@ __________________________
 python3 -c "from ultralytics import YOLO; print('YOLOv8 ready ✅')"
 
 _______________________________
-# yolo_test.py
+
 from ultralytics import YOLO
 
-# Load pretrained model
+# Load pretrained YOLOv8 model
 model = YOLO("yolov8n.pt")
 
-# Run inference on a test image
-results = model("https://ultralytics.com/images/bus.jpg")
+# Run prediction
+results = model.predict(source="bus.jpg", show=True)
 
-# Show results
-results[0].show()
+# Show/save results
+for r in results:
+    r.show()   # open image with detections
+    r.save(filename="output.jpg")  # save result
+
 
