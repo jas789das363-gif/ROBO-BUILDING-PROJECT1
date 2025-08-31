@@ -1,4 +1,5 @@
-gst-launch-1.0 nvarguscamerasrc ! nvoverlaysink
+gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! 'video/x-raw(memory:NVMM),width=1280,height=720,format=NV12,framerate=30/1' ! nv3dsink
+gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! 'video/x-raw(memory:NVMM),width=1280,height=720,format=NV12,framerate=30/1' ! xvimagesink
 
 
 ___________
