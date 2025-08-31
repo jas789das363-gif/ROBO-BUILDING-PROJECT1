@@ -1,36 +1,39 @@
-import cv2
-from ultralytics import YOLO
+sudo docker run -it --runtime=nvidia --network host ultralytics/ultralytics:latest-jetson-jetpack6
 
-# Load YOLOv8
+
+# yolo_camera.py
+from ultralytics import YOLO
+import jetson.utils
+import cv2
+import numpy as np
+
+# Load YOLOv8 model
 model = YOLO("yolov8n.pt")
 
-# Working GStreamer pipeline
-gst_pipeline = (
-    "nvarguscamerasrc sensor-id=0 ! "
-    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1 ! "
-    "nvvidconv ! video/x-raw, format=BGR ! appsink"
-)
-
-cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
-
-if not cap.isOpened():
-    print("🚨 Camera not opened")
-    exit()
+# Open the IMX219 CSI camera
+camera = jetson.utils.videoSource("csi://0")  # 0 = IMX219
+window = jetson.utils.videoOutput("YOLOv8 Live Feed")  # creates a live preview
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("🚨 Frame capture failed")
-        break
+    # Capture frame from camera
+    img_jetson = camera.Capture()
 
-    # YOLO inference
+    # Convert Jetson image to OpenCV BGR for YOLO
+    frame = jetson.utils.cudaToNumpy(img_jetson)
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+
+    # YOLOv8 inference
     results = model(frame)
     annotated_frame = results[0].plot()
 
-    cv2.imshow("YOLO Live Feed", annotated_frame)
+    # Display live feed
+    cv2.imshow("YOLOv8 Live Feed", annotated_frame)
+
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
         break
+    elif key == ord('s'):
+        cv2.imwrite("snapshot.jpg", annotated_frame)
+        print("✅ Snapshot saved")
 
-cap.release()
 cv2.destroyAllWindows()
