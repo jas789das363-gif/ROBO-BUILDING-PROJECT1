@@ -1,11 +1,9 @@
 import cv2
 
-# GStreamer pipeline for IMX219 (CSI camera)
 gst_pipeline = (
     "nvarguscamerasrc sensor-id=0 ! "
-    "video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
-    "nvvidconv ! video/x-raw, format=BGRx ! "
-    "videoconvert ! video/x-raw, format=BGR ! appsink"
+    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1 ! "
+    "nvvidconv ! video/x-raw, format=BGR ! appsink"
 )
 
 cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
@@ -20,10 +18,8 @@ while True:
         print("🚨 Frame capture failed")
         break
 
-    # Show live feed
     cv2.imshow("Camera Feed", frame)
     
-    # Press 's' to save a snapshot
     key = cv2.waitKey(1) & 0xFF
     if key == ord('s'):
         cv2.imwrite("snapshot.jpg", frame)
