@@ -122,4 +122,16 @@ results[0].show()
 __________________________
 python3 -c "from ultralytics import YOLO; print('YOLOv8 ready ✅')"
 
+_______________________________
+# yolo_test.py
+from ultralytics import YOLO
+
+# Load pretrained model
+model = YOLO("yolov8n.pt")
+
+# Run inference on a test image
+results = model("https://ultralytics.com/images/bus.jpg")
+
+# Show results
+results[0].show()
 
