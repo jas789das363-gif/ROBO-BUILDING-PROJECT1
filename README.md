@@ -121,20 +121,36 @@ results[0].show()
 
 __________________________
 python3 -c "from ultralytics import YOLO; print('YOLOv8 ready ✅')"
-
+____________________________________________________________________________________________
 _______________________________
 
 from ultralytics import YOLO
+import cv2
 
-# Load pretrained YOLOv8 model
+# Load YOLO model
 model = YOLO("yolov8n.pt")
 
-# Run prediction
-results = model.predict(source="bus.jpg", show=True)
+# Open camera (0 = default camera, may need 1 or 2 depending on device index)
+cap = cv2.VideoCapture(0)
 
-# Show/save results
-for r in results:
-    r.show()   # open image with detections
-    r.save(filename="output.jpg")  # save result
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
 
+    # Run YOLO detection
+    results = model(frame)
+
+    # Draw results on the frame
+    annotated_frame = results[0].plot()
+
+    # Show the output
+    cv2.imshow("YOLO Camera", annotated_frame)
+
+    # Press 'q' to exit
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 
