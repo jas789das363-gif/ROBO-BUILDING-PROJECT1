@@ -35,3 +35,11 @@ else:
 
 cap.release()
 cv2.destroyAllWindows()
+__________________________________________________________________________________________________________________________
+sudo apt-get update
+sudo apt-get install -y v4l-utils
+
+
+# test
+v4l2-ctl --list-devices
+
