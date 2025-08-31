@@ -1,5 +1,21 @@
 import cv2
 
+cap = cv2.VideoCapture("/dev/video0")  # or try 1,2 if 0 fails
+ret, frame = cap.read()
+if ret:
+    cv2.imwrite("frame.jpg", frame)
+    print("✅ Frame captured and saved as frame.jpg")
+else:
+    print("🚨 Failed to capture frame")
+cap.release()
+
+
+
+
+
+______
+import cv2
+
 cap = cv2.VideoCapture(0)  # try /dev/video0
 
 if not cap.isOpened():
