@@ -1,7 +1,6 @@
 import cv2
 
-# Try directly opening the device node
-cap = cv2.VideoCapture("/dev/video0")  # your camera
+cap = cv2.VideoCapture("/dev/video0")  # your CSI camera
 
 if not cap.isOpened():
     print("🚨 Cannot open camera!")
@@ -15,7 +14,10 @@ while True:
         print("⚠️ Frame not received!")
         break
 
-    cv2.imshow("Camera Test Simple", frame)
+    # FIX: convert YUV/NV12 frame to BGR
+    frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_NV12)
+
+    cv2.imshow("Camera Test Fixed", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
