@@ -43,3 +43,9 @@ sudo apt-get install -y v4l-utils
 # test
 v4l2-ctl --list-devices
 
+# 3 liveestream
+gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! xvimagesink
+
+#final test
+sudo apt-get install -y v4l-utils
+v4l2-ctl --list-devices
