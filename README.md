@@ -100,10 +100,25 @@ for r in results:
 # Display image with bounding boxes (optional)
 results.show()
 
+_______________________________________________
+
+from ultralytics import YOLO
+
+# Load YOLOv8n (tiny version, good for testing)
+model = YOLO("yolov8n.pt")
+
+# Export to TensorRT (this will take a few minutes)
+model.export(format="engine")
+
+# Load TensorRT model
+trt_model = YOLO("yolov8n.engine")
+
+# Run inference on a test image
+results = trt_model("https://ultralytics.com/images/bus.jpg")
+
+# Show results
+results[0].show()
 
 
 
-sudo docker run -it --ipc=host --runtime=nvidia -v ~/robot_project:/workspace ultralytics/ultralytics:latest-jetson-jetpack6
-cd /workspace
 
-python3 yolo_test.py
