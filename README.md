@@ -1,32 +1,35 @@
-sudo docker run -it --runtime=nvidia --network host ultralytics/ultralytics:latest-jetson-jetpack6
-sudo docker run -it --runtime=nvidia --network host ultralytics/ultralytics:latest-jetson-jetpack6
-python3
->>> import jetson.utils   # should work now
-
-
-# yolo_camera.py
+# yolo_csi_camera.py
 from ultralytics import YOLO
 import jetson.utils
 import cv2
 import numpy as np
 
-# Load YOLOv8 model
-model = YOLO("yolov8n.pt")
+# -------------------------
+# Load YOLOv8n model
+# -------------------------
+model = YOLO("yolov8n.pt")  # Make sure yolov8n.pt is in the same folder
 
-# Open the IMX219 CSI camera
-camera = jetson.utils.videoSource("csi://0")  # 0 = IMX219
-window = jetson.utils.videoOutput("YOLOv8 Live Feed")  # creates a live preview
+# -------------------------
+# Open CSI camera
+# -------------------------
+camera = jetson.utils.videoSource("csi://0")  # IMX219 camera
+window = jetson.utils.videoOutput("YOLOv8 Live Feed")  # live preview
 
+# -------------------------
+# Main loop
+# -------------------------
 while True:
-    # Capture frame from camera
+    # Capture frame (Jetson GPU image)
     img_jetson = camera.Capture()
 
-    # Convert Jetson image to OpenCV BGR for YOLO
+    # Convert to OpenCV BGR for YOLO
     frame = jetson.utils.cudaToNumpy(img_jetson)
     frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
-    # YOLOv8 inference
+    # Run YOLOv8 inference (GPU accelerated)
     results = model(frame)
+
+    # Draw annotations
     annotated_frame = results[0].plot()
 
     # Display live feed
@@ -37,6 +40,6 @@ while True:
         break
     elif key == ord('s'):
         cv2.imwrite("snapshot.jpg", annotated_frame)
-        print("✅ Snapshot saved")
+        print("✅ Snapshot saved as snapshot.jpg")
 
 cv2.destroyAllWindows()
