@@ -119,6 +119,7 @@ results = trt_model("https://ultralytics.com/images/bus.jpg")
 # Show results
 results[0].show()
 
-
+__________________________
+python3 -c "from ultralytics import YOLO; print('YOLOv8 ready ✅')"
 
 
