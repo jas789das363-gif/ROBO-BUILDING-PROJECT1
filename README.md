@@ -36,16 +36,32 @@ else:
 cap.release()
 cv2.destroyAllWindows()
 __________________________________________________________________________________________________________________________
-sudo apt-get update
-sudo apt-get install -y v4l-utils
 
 
-# test
-v4l2-ctl --list-devices
 
-# 3 liveestream
-gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! xvimagesink
+#latest:
+gst-launch-1.0 v4l2src device=/dev/video1 ! videoconvert ! xvimagesink
 
-#final test
-sudo apt-get install -y v4l-utils
-v4l2-ctl --list-devices
+
+
+
+import cv2
+
+# Replace with the correct /dev/video node
+cap = cv2.VideoCapture("/dev/video1")
+
+if not cap.isOpened():
+    print("🚨 Camera not found!")
+else:
+    print("✅ Camera opened successfully!")
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        cv2.imshow("CSI Camera Test", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+cap.release()
+cv2.destroyAllWindows()
+
