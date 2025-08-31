@@ -1,12 +1,18 @@
 import cv2
 
-cap = cv2.VideoCapture("/dev/video0")  # your CSI camera
+gst_pipeline = (
+    "v4l2src device=/dev/video0 ! "
+    "video/x-raw, format=(string)BGR ! "
+    "videoconvert ! appsink"
+)
+
+cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
 
 if not cap.isOpened():
     print("🚨 Camera not found!")
     exit()
 else:
-    print("✅ Camera opened successfully!")
+    print("✅ Camera feed ready!")
 
 while True:
     ret, frame = cap.read()
@@ -14,10 +20,9 @@ while True:
         print("⚠️ Frame not received!")
         break
 
-    cv2.imshow("CSI Camera Test", frame)
+    cv2.imshow("CSI Camera Feed", frame)
 
-    # Press 'q' to quit
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
 cap.release()
