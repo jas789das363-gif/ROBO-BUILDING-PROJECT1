@@ -127,55 +127,48 @@ _______________________________
 import cv2
 from ultralytics import YOLO
 
-# Load YOLOv8 model
-model = YOLO("yolov8n.pt")  # tiny model for speed
+# Load YOLOv8 model (you can swap to yolov8n.pt for faster but lighter model)
+model = YOLO("yolov8n.pt")
 
-# Jetson CSI camera pipeline
-def gstreamer_pipeline(
-    sensor_id=0,
-    capture_width=1280,
-    capture_height=720,
-    display_width=640,
-    display_height=480,
-    framerate=30,
-    flip_method=0,
-):
-    return (
-        "nvarguscamerasrc sensor-id=%d ! "
-        "video/x-raw(memory:NVMM), width=(int)%d, height=(int)%d, framerate=(fraction)%d/1 ! "
-        "nvvidconv flip-method=%d ! "
-        "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
-        "videoconvert ! video/x-raw, format=(string)BGR ! appsink"
-        % (
-            sensor_id,
-            capture_width,
-            capture_height,
-            framerate,
-            flip_method,
-            display_width,
-            display_height,
-        )
-    )
+# Try opening the CSI camera (15-pin connector on Jetson Orin Nano)
+# GStreamer pipeline for 1280x720 @30fps
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM),width=1280,height=720,framerate=30/1 ! "
+    "nvvidconv flip-method=0 ! "
+    "video/x-raw, width=640, height=480, format=BGRx ! "
+    "videoconvert ! video/x-raw, format=BGR ! appsink"
+)
 
-# Open camera
-cap = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
+cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
 
 if not cap.isOpened():
-    print("🚨 Camera not found!")
+    print("🚨 Camera not found! Check connection or pipeline.")
     exit()
+
+print("✅ Camera started. Press 'q' to quit.")
 
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("🚨 Failed to grab frame")
+        print("⚠️ Frame capture failed.")
         break
 
-    # Run YOLO on the frame
-    results = model(frame, show=True)  # show=True pops a window
+    # Run YOLO detection
+    results = model(frame, stream=True)
 
-    # Press 'q' to quit
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    # Draw detections
+    for r in results:
+        annotated_frame = r.plot()
+
+    # Show output
+    cv2.imshow("YOLOv8 Detection", annotated_frame)
+
+    # Exit on 'q'
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+# Cleanup
 cap.release()
 cv2.destroyAllWindows()
+print("👋 Camera test finished.")
