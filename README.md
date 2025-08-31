@@ -1,4 +1,7 @@
 sudo docker run -it --runtime=nvidia --network host ultralytics/ultralytics:latest-jetson-jetpack6
+sudo docker run -it --runtime=nvidia --network host ultralytics/ultralytics:latest-jetson-jetpack6
+python3
+>>> import jetson.utils   # should work now
 
 
 # yolo_camera.py
