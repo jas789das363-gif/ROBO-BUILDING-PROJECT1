@@ -1,47 +1,30 @@
-gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! \
-'video/x-raw(memory:NVMM),width=1280,height=720,framerate=30/1' ! nv3dsink
-
-
-
-
-____
-
-import cv2
+import jetson.utils
 from ultralytics import YOLO
+import numpy as np
+import cv2
 
 # Load YOLOv8 model
-model = YOLO("yolov8n.pt")  # make sure the .pt file exists
+model = YOLO("yolov8n.pt")
 
-# GStreamer pipeline for live feed
-gst_pipeline = (
-    "nvarguscamerasrc sensor-id=0 ! "
-    "video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
-    "nvvidconv ! video/x-raw, format=BGRx ! "
-    "videoconvert ! video/x-raw, format=BGR ! appsink"
-)
-
-cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
-if not cap.isOpened():
-    print("🚨 Camera not opened")
-    exit()
+# Open camera
+camera = jetson.utils.videoSource("csi://0")  # IMX219
+window = jetson.utils.videoOutput("YOLOv8 Live Feed")  # window preview
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("🚨 Frame capture failed")
-        break
+    img_jetson = camera.Capture()  # Jetson image
+
+    # Convert to OpenCV format for YOLOv8
+    frame = jetson.utils.cudaToNumpy(img_jetson)
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)  # convert to BGR
 
     # Run YOLOv8 inference
     results = model(frame)
+    annotated_frame = results[0].plot()  # draw boxes
 
-    # Render results on frame
-    annotated_frame = results[0].plot()
-
+    # Show in window
     cv2.imshow("YOLOv8 Live Feed", annotated_frame)
-
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
         break
 
-cap.release()
 cv2.destroyAllWindows()
