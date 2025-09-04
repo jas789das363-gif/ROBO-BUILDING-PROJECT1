@@ -1,42 +1,40 @@
 import cv2
-import numpy as np
+from ultralytics import YOLO
 
-# Open camera (V4L2)
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+# Load YOLOv8 model
+model = YOLO("yolov8n.pt")
+
+# Minimal working GStreamer pipeline for Jetson + IMX219
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=640, height=480, framerate=30/1, format=NV12 ! "
+    "nvvidconv ! "
+    "video/x-raw, format=BGRx ! "
+    "appsink"
+)
+
+cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
 
 if not cap.isOpened():
-    print("❌ Failed to open camera.")
+    print("❌ Failed to open camera. Double-check connection and JetPack version.")
     exit()
 
-# Set resolution (optional)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("❌ Frame capture failed.")
+        break
 
-# Capture one frame
-ret, frame = cap.read()
-if not ret:
-    print("❌ Failed to capture frame.")
-    cap.release()
-    exit()
+    # Convert BGRx -> BGR for YOLO
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
-# Convert from NV12/YUV to BGR
-# On Jetson, frames from /dev/video0 are often NV12 stored in a single plane
-# OpenCV sometimes reads them as a 2D array, so we reconstruct manually
+    # Run YOLOv8
+    results = model(frame_bgr)
+    annotated_frame = results[0].plot()
 
-# If frame is already 2D, treat as NV12
-if len(frame.shape) == 2:
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    # frame is a single plane NV12 -> convert
-    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_NV12)
-else:
-    # Already 3 channels? Just pass
-    frame_bgr = frame
+    cv2.imshow("YOLOv8 Detection", annotated_frame)
+    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
+        break
 
-cv2.imshow("Camera Frame (BGR)", frame_bgr)
-cv2.imwrite("frame_bgr_fixed.jpg", frame_bgr)
-print("💾 Saved frame_bgr_fixed.jpg")
-
-cv2.waitKey(3000)
 cap.release()
 cv2.destroyAllWindows()
