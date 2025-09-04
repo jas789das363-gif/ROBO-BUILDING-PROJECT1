@@ -1,45 +1,61 @@
-# yolo_csi_camera.py
-from ultralytics import YOLO
-import jetson.utils
 import cv2
-import numpy as np
+from ultralytics import YOLO
 
-# -------------------------
-# Load YOLOv8n model
-# -------------------------
-model = YOLO("yolov8n.pt")  # Make sure yolov8n.pt is in the same folder
+# Load YOLOv8 model (n = nano version, fastest for Jetson)
+model = YOLO("yolov8n.pt")
 
-# -------------------------
-# Open CSI camera
-# -------------------------
-camera = jetson.utils.videoSource("csi://0")  # IMX219 camera
-window = jetson.utils.videoOutput("YOLOv8 Live Feed")  # live preview
+# GStreamer pipeline for IMX219 on Jetson Orin Nano
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! "
+    "nvvidconv flip-method=0 ! "
+    "video/x-raw, format=BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=BGR ! appsink"
+)
 
-# -------------------------
-# Main loop
-# -------------------------
+# Open camera
+cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
+
+if not cap.isOpened():
+    print("❌ Failed to open camera.")
+    exit()
+
 while True:
-    # Capture frame (Jetson GPU image)
-    img_jetson = camera.Capture()
+    ret, frame = cap.read()
+    if not ret:
+        print("❌ Failed to grab frame.")
+        break
 
-    # Convert to OpenCV BGR for YOLO
-    frame = jetson.utils.cudaToNumpy(img_jetson)
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
-
-    # Run YOLOv8 inference (GPU accelerated)
+    # Run YOLOv8 inference
     results = model(frame)
 
-    # Draw annotations
+    # Display results
     annotated_frame = results[0].plot()
+    cv2.imshow("YOLOv8 Detection", annotated_frame)
 
-    # Display live feed
-    cv2.imshow("YOLOv8 Live Feed", annotated_frame)
-
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
+    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
         break
-    elif key == ord('s'):
-        cv2.imwrite("snapshot.jpg", annotated_frame)
-        print("✅ Snapshot saved as snapshot.jpg")
 
+cap.release()
 cv2.destroyAllWindows()
+__________________________
+__________________________
+
+
+
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! "
+    "nvvidconv flip-method=0 ! "
+    "video/x-raw, format=BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=BGR ! appsink"
+)
+
+model.predict(source=gst_pipeline, show=True)
+
