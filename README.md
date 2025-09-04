@@ -1,27 +1,46 @@
-dpkg -l | grep nvidia-l4t
+import jetson.utils
+from ultralytics import YOLO
+import cv2
+import numpy as np
 
+# -------------------------
+# Load YOLOv8 model
+# -------------------------
+# Make sure you have a YOLOv8 model in ONNX or PyTorch format compatible with Jetson
+model = YOLO("yolov8n.pt")  # replace with your model path
 
+# -------------------------
+# Open IMX219 camera
+# -------------------------
+camera = jetson.utils.gstCamera(1280, 720, "/dev/video0")
 
-# Update apt
-sudo apt update
-sudo apt install python3-pip
-sudo apt install python3-numpy python3-pycuda
-sudo apt install libopencv-python libopencv-contrib-python
+# -------------------------
+# Helper: Convert Jetson RGBA -> OpenCV BGR
+# -------------------------
+def jetson_to_cv2(img_rgba, width, height):
+    # Converts CUDA memory to numpy array
+    array = jetson.utils.cudaToNumpy(img_rgba, width, height, 4)
+    return cv2.cvtColor(array, cv2.COLOR_RGBA2BGR)
 
-# Install Jetson Utils / Jetson Inference Python bindings
-cd ~
-git clone https://github.com/dusty-nv/jetson-inference.git
-cd jetson-inference
-git submodule update --init
-mkdir build
-cd build
-cmake ../
-make -j$(nproc)
-sudo make install
-sudo ldconfig
+# -------------------------
+# Main loop
+# -------------------------
+while True:
+    # Capture RGBA frame from camera
+    img, width, height = camera.CaptureRGBA()
 
+    # Convert to OpenCV BGR
+    frame_bgr = jetson_to_cv2(img, width, height)
 
-____________________________
-python3
->>> import jetson.utils
->>> import jetson.inference
+    # Run YOLOv8 inference
+    results = model(frame_bgr)
+
+    # Overlay YOLO detections
+    annotated_frame = results[0].plot()
+
+    # Display frame
+    cv2.imshow("YOLOv8 Detection", annotated_frame)
+    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
+        break
+
+cv2.destroyAllWindows()
