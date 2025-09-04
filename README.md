@@ -1,31 +1,40 @@
 import cv2
-from ultralytics import YOLO
+import numpy as np
 
-# Load YOLOv8 model (nano version is fastest for Jetson)
-model = YOLO("yolov8n.pt")
+# Full GStreamer pipeline for Jetson Orin Nano IMX219
+gst_pipeline = (
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! "
+    "nvvidconv ! "
+    "video/x-raw, format=BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=BGR ! appsink drop=True"
+)
 
-# Use plain OpenCV capture (your working pipeline)
-cap = cv2.VideoCapture(0)
+print("🔍 Opening camera with pipeline:")
+print(gst_pipeline)
+
+cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
 
 if not cap.isOpened():
-    print("❌ Failed to open camera with index 0.")
+    print("❌ Could not open camera with GStreamer pipeline.")
     exit()
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("❌ Failed to grab frame.")
-        break
+ret, frame = cap.read()
+if not ret or frame is None:
+    print("❌ Could not read frame from camera.")
+    cap.release()
+    exit()
 
-    # Run YOLOv8 inference
-    results = model(frame)
+print(f"✅ Frame captured, shape: {frame.shape}")
 
-    # Display results
-    annotated_frame = results[0].plot()
-    cv2.imshow("YOLOv8 Detection", annotated_frame)
+# Save the captured frame for inspection
+cv2.imwrite("frame_bgr.jpg", frame)
+print("💾 Saved: frame_bgr.jpg")
 
-    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
-        break
+# Display the frame
+cv2.imshow("Camera Frame (BGR)", frame)
+cv2.waitKey(3000)  # show for 3 seconds
 
 cap.release()
 cv2.destroyAllWindows()
