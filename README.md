@@ -1,43 +1,42 @@
 import cv2
+import numpy as np
 
-def try_pipeline(pipeline, use_gst=True):
-    print("\n🔍 Trying:", pipeline)
-    if use_gst:
-        cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
-    else:
-        cap = cv2.VideoCapture(pipeline)
+# Open camera (V4L2)
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 
-    if not cap.isOpened():
-        print("❌ Could not open this source.")
-        return False
+if not cap.isOpened():
+    print("❌ Failed to open camera.")
+    exit()
 
-    ret, frame = cap.read()
-    if not ret or frame is None:
-        print("❌ Opened but could not read frame.")
-        cap.release()
-        return False
+# Set resolution (optional)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    print(f"✅ Frame captured from {pipeline}, shape={frame.shape}")
-    filename = f"test_frame_{'gst' if use_gst else 'v4l2'}.jpg"
-    cv2.imwrite(filename, frame)
-    print(f"💾 Saved {filename}")
-
-    cv2.imshow("Camera Test", frame)
-    cv2.waitKey(3000)  # show 3 sec
+# Capture one frame
+ret, frame = cap.read()
+if not ret:
+    print("❌ Failed to capture frame.")
     cap.release()
-    cv2.destroyAllWindows()
-    return True
+    exit()
 
+# Convert from NV12/YUV to BGR
+# On Jetson, frames from /dev/video0 are often NV12 stored in a single plane
+# OpenCV sometimes reads them as a 2D array, so we reconstruct manually
 
-# Candidate pipelines
-gst_pipeline = (
-    "nvarguscamerasrc ! "
-    "video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! "
-    "nvvidconv ! video/x-raw, format=BGRx ! "
-    "videoconvert ! video/x-raw, format=BGR ! appsink drop=True"
-)
+# If frame is already 2D, treat as NV12
+if len(frame.shape) == 2:
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    # frame is a single plane NV12 -> convert
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_NV12)
+else:
+    # Already 3 channels? Just pass
+    frame_bgr = frame
 
-# Step 1: Try nvarguscamerasrc
-if not try_pipeline(gst_pipeline, use_gst=True):
-    # Step 2: Fallback to /dev/video0 (plain V4L2)
-    try_pipeline(0, use_gst=False)
+cv2.imshow("Camera Frame (BGR)", frame_bgr)
+cv2.imwrite("frame_bgr_fixed.jpg", frame_bgr)
+print("💾 Saved frame_bgr_fixed.jpg")
+
+cv2.waitKey(3000)
+cap.release()
+cv2.destroyAllWindows()
