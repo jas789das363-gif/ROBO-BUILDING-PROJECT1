@@ -6,13 +6,18 @@ import numpy as np
 # -------------------------
 # Load YOLOv8 model
 # -------------------------
-# Make sure you have a YOLOv8 model in ONNX or PyTorch format compatible with Jetson
+# Make sure you have a YOLOv8 model in PyTorch/TensorRT format
 model = YOLO("yolov8n.pt")  # replace with your model path
 
 # -------------------------
-# Open IMX219 camera
+# Open IMX219 camera using nvarguscamerasrc
 # -------------------------
-camera = jetson.utils.gstCamera(1280, 720, "/dev/video0")
+camera = jetson.utils.gstCamera(
+    1280, 720,
+    "nvarguscamerasrc ! "
+    "video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
+    "nvvidconv ! video/x-raw, format=RGBA ! appsink"
+)
 
 # -------------------------
 # Helper: Convert Jetson RGBA -> OpenCV BGR
